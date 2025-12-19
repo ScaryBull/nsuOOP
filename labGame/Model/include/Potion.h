@@ -3,7 +3,10 @@
 
 #include <string>
 #include <vector>
+#include <algorithm>
+#include <iomanip>
 #include "Item.h"
+#include "ItemFactories.h"
 
 
 class Potion : public Item {

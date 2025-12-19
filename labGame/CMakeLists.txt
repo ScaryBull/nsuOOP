@@ -16,6 +16,7 @@ add_executable(labGame ${SOURCES}
         model/include/Potion.h
         model/src/Item.cpp
         model/src/Potion.cpp
+        model/src/Star.cpp
         model/include/Amulet.h
         model/src/Amulet.cpp
         model/include/Order.h

@@ -332,7 +332,13 @@ void GameView::drawShopWindow(sf::RenderWindow& window, const GameModel& model) 
 
     if (i < 6) {
       window.draw(makeSprite(ingredientTextures[i], cellX, cellY, SHOP_CELL_SIZE, SHOP_CELL_SIZE));
-      window.draw(makeText("5", 16, sf::Color::Yellow, cellX + 5.0f, cellY + 5.0f, false));
+      int price = 5;
+      try {
+        price = model.getIngredient(i)->getBuyPrice();
+      } catch (...) {
+        price = 5;
+      }
+      window.draw(makeText(std::to_string(price), 16, sf::Color::Yellow, cellX + 5.0f, cellY + 5.0f, false));
     } else if (i == 6) {
       const auto& levels = model.getUnlockedLevels();
       bool hasLevel2 = std::any_of(levels.begin(), levels.end(), 
@@ -344,11 +350,13 @@ void GameView::drawShopWindow(sf::RenderWindow& window, const GameModel& model) 
         float spriteY = cellY + innerPad;
         float spriteSize = static_cast<float>(SHOP_CELL_SIZE) - 2.0f * innerPad;
         sf::Sprite levelSprite = makeSprite(level2Texture, spriteX, spriteY, spriteSize, spriteSize);
+        if (hasLevel2) levelSprite.setColor(sf::Color(120, 120, 120));
         window.draw(levelSprite);
       }
 
       if (!hasLevel2) {
-        window.draw(makeText("50", 14, sf::Color::Yellow, cellX + 5.0f, cellY + 5.0f, false));
+        int price = model.getLevelUnlockPrice(2);
+        window.draw(makeText(std::to_string(price), 14, sf::Color::Yellow, cellX + 5.0f, cellY + 5.0f, false));
       }
     } else if (i == 7) {
       const auto& levels = model.getUnlockedLevels();
@@ -369,7 +377,8 @@ void GameView::drawShopWindow(sf::RenderWindow& window, const GameModel& model) 
       }
 
       if (hasLevel2 && !hasLevel3) {
-        window.draw(makeText("100", 14, sf::Color::Yellow, cellX + 5.0f, cellY + 5.0f, false));
+        int price = model.getLevelUnlockPrice(3);
+        window.draw(makeText(std::to_string(price), 14, sf::Color::Yellow, cellX + 5.0f, cellY + 5.0f, false));
       }
     } else if (i == 8) {
       const auto& levels = model.getUnlockedLevels();
@@ -382,7 +391,8 @@ void GameView::drawShopWindow(sf::RenderWindow& window, const GameModel& model) 
         float spriteY = cellY + innerPad;
         float spriteSize = static_cast<float>(SHOP_CELL_SIZE) - 2.0f * innerPad;
         window.draw(makeSprite(amuletTexture, spriteX, spriteY, spriteSize, spriteSize));
-        window.draw(makeText("50", 14, sf::Color::Yellow, cellX + 5.0f, cellY + 5.0f, false));
+        int price = model.getAmuletBasePrice();
+        window.draw(makeText(std::to_string(price), 14, sf::Color::Yellow, cellX + 5.0f, cellY + 5.0f, false));
       }
     } else if (i == 9) {
       const auto& levels = model.getUnlockedLevels();
@@ -398,12 +408,12 @@ void GameView::drawShopWindow(sf::RenderWindow& window, const GameModel& model) 
           if (starTexture.getSize().x > 0 && starTexture.getSize().y > 0) {
             window.draw(makeSprite(starTexture, spriteX, spriteY, spriteSize, spriteSize));
           }
-          window.draw(makeText("10", 14, sf::Color::Yellow, cellX + 5.0f, cellY + 5.0f, false));
+          window.draw(makeText(std::to_string(model.getStarPrice()), 14, sf::Color::Yellow, cellX + 5.0f, cellY + 5.0f, false));
         } else {
           if (secretTexture.getSize().x > 0 && secretTexture.getSize().y > 0) {
             window.draw(makeSprite(secretTexture, spriteX, spriteY, spriteSize, spriteSize));
           }
-          window.draw(makeText("150", 14, sf::Color::Yellow, cellX + 5.0f, cellY + 5.0f, false));
+          window.draw(makeText(std::to_string(model.getSecretPrice()), 14, sf::Color::Yellow, cellX + 5.0f, cellY + 5.0f, false));
         }
       }
     }

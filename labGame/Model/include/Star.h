@@ -11,9 +11,10 @@
 class Star : public Item {
 private:
   std::vector<std::string> properties;
+  int buyPrice;
 
 public:  Star();  Star(const std::string& name, std::vector<std::string> props,
-       double sellMultiplier = 1.0, const std::string& imageFile = "star.png");
+       double sellMultiplier = 1.0, const std::string& imageFile = "star.png", int buyPrice = 10);
   
   void load(std::istream& is) override;
 

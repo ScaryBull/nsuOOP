@@ -1,14 +1,15 @@
 #include "../include/GameModel.h"
+#include "../include/Star.h"
 
 
 void GameModel::initializeIngredients() {
     struct InitEntry { const char* name; const char* prop; int price; double mul; const char* img; } entries[] = {
-      {"Mandragora", "Healing", 10, 1.0, "ingredient_0.png"},
-      {"Ginger root", "Energy", 15, 1.0, "ingredient_1.png"},
-      {"Manticore ashes", "Strenght", 20, 1.0, "ingredient_2.png"},
-      {"Phoenix feather", "Revival", 12, 1.0, "ingredient_3.png"},
-      {"Hydra's fang", "Poison", 25, 1.0, "ingredient_4.png"},
-      {"Moon mushroom", "Invisibility", 30, 1.0, "ingredient_5.png"}
+      {"Mandragora", "Healing", 5, 1.0, "ingredient_0.png"},
+      {"Ginger root", "Energy", 5, 1.0, "ingredient_1.png"},
+      {"Manticore ashes", "Strenght", 5, 1.0, "ingredient_2.png"},
+      {"Phoenix feather", "Revival", 5, 1.0, "ingredient_3.png"},
+      {"Hydra's fang", "Poison", 5, 1.0, "ingredient_4.png"},
+      {"Moon mushroom", "Invisibility", 5, 1.0, "ingredient_5.png"}
     };
 
     for (const auto &e : entries) {
@@ -33,7 +34,17 @@ void GameModel::initializeInventory() {
   }
 
 void GameModel::initializeLevels() {
-    unlockedLevels.emplace_back(1, 2, "I.png");
+    // define available levels with their prices
+    availableLevels.clear();
+    availableLevels.emplace_back(1, 2, "I.png", 0);
+    availableLevels.emplace_back(2, 5, "II.png", 100);
+    availableLevels.emplace_back(3, 5, "III.png", 300);
+
+    // unlock the first level by default
+    auto it = std::find_if(availableLevels.begin(), availableLevels.end(), [](const AlchemyLevel& l){ return l.getLevelNumber() == 1; });
+    if (it != availableLevels.end()) {
+      unlockedLevels.push_back(*it);
+    }
   }
 
 void GameModel::generateOrders() {
@@ -318,4 +329,24 @@ bool GameModel::decrementStar() {
     return true;
   }
   return false;
+}
+
+int GameModel::getLevelUnlockPrice(int level) const {
+  for (const auto &l : availableLevels) {
+    if (l.getLevelNumber() == level) return l.getPrice();
+  }
+  return 0;
+}
+
+int GameModel::getAmuletBasePrice() const {
+  return 50;
+}
+
+int GameModel::getSecretPrice() const {
+  return 500;
+}
+
+int GameModel::getStarPrice() const {
+  Star s;
+  return s.getBuyPrice();
 }

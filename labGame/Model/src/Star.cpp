@@ -1,11 +1,11 @@
 #include "../include/Star.h"
 
 
-Star::Star() : Item("", 1.0), properties() {}
+Star::Star() : Item("", 1.0), properties(), buyPrice(10) {}
 
 Star::Star(const std::string& name, std::vector<std::string> props,
-  double sellMultiplier, const std::string& imageFile)
-  : Item(name, sellMultiplier, imageFile), properties(std::move(props)) {}
+  double sellMultiplier, const std::string& imageFile, int buyPrice)
+  : Item(name, sellMultiplier, imageFile), properties(std::move(props)), buyPrice(buyPrice) {}
 
 void Star::load(std::istream& is) {
     Item::load(is);
@@ -29,7 +29,7 @@ namespace {
 }
 
 int Star::getBuyPrice() const {
-  return 0;
+  return buyPrice;
 }
 
 int Star::getPropertyCount() const {

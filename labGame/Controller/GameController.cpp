@@ -432,10 +432,11 @@ void GameController::handleShopBuy(float mouseX, float mouseY) {
       mouseY >= cellY && mouseY < cellY + GameView::SHOP_CELL_SIZE) {
 
       if (i < 6) {
-        if (model.getGold() >= 5) {
+        int price = model.getIngredient(i)->getBuyPrice();
+        if (model.getGold() >= price) {
           int currentQuantity = model.getIngredientQuantity(i);
           model.setIngredientQuantity(i, currentQuantity + 1);
-          model.addGold(-5);
+          model.addGold(-price);
         }
       } else if (i == 6) {
         const auto& levels = model.getUnlockedLevels();
@@ -447,11 +448,14 @@ void GameController::handleShopBuy(float mouseX, float mouseY) {
           }
         }
         
-        if (!hasLevel2 && model.getGold() >= 50) {
-          AlchemyLevel level2(2, 5, "II.png");
-          model.unlockLevel(level2);
-          model.addGold(-50);
-          model.regenerateOrdersForLevel();
+        if (!hasLevel2) {
+          int price = model.getLevelUnlockPrice(2);
+          if (model.getGold() >= price) {
+            AlchemyLevel level2(2, 5, "II.png");
+            model.unlockLevel(level2);
+            model.addGold(-price);
+            model.regenerateOrdersForLevel();
+          }
         }
       } else if (i == 7) {
         const auto& levels = model.getUnlockedLevels();
@@ -466,11 +470,14 @@ void GameController::handleShopBuy(float mouseX, float mouseY) {
           }
         }
         
-        if (hasLevel2 && !hasLevel3 && model.getGold() >= 100) {
-          AlchemyLevel level3(3, 5, "III.png");
-          model.unlockLevel(level3);
-          model.addGold(-100);
-          model.regenerateOrdersForLevel();
+        if (hasLevel2 && !hasLevel3) {
+          int price = model.getLevelUnlockPrice(3);
+          if (model.getGold() >= price) {
+            AlchemyLevel level3(3, 5, "III.png");
+            model.unlockLevel(level3);
+            model.addGold(-price);
+            model.regenerateOrdersForLevel();
+          }
         }
       } else if (i == 8) {
         const auto& levels = model.getUnlockedLevels();
@@ -481,10 +488,13 @@ void GameController::handleShopBuy(float mouseX, float mouseY) {
             break;
           }
         }
-        if (hasLevel3 && model.getGold() >= 50) {
-          int currentBases = model.getAmuletBases();
-          model.setAmuletBases(currentBases + 1);
-          model.addGold(-50);
+        if (hasLevel3) {
+          int price = model.getAmuletBasePrice();
+          if (model.getGold() >= price) {
+            int currentBases = model.getAmuletBases();
+            model.setAmuletBases(currentBases + 1);
+            model.addGold(-price);
+          }
         }
       } else if (i == 9) {
         const auto& levels = model.getUnlockedLevels();
@@ -497,17 +507,19 @@ void GameController::handleShopBuy(float mouseX, float mouseY) {
         }
 
         if (hasLevel3) {
-          if (!model.isSecretPurchased()) {
-            if (model.getGold() >= 150) {
-              model.purchaseSecret();
-              model.addGold(-150);
+            if (!model.isSecretPurchased()) {
+              int price = model.getSecretPrice();
+              if (model.getGold() >= price) {
+                model.purchaseSecret();
+                model.addGold(-price);
+              }
+            } else {
+              int price = model.getStarPrice();
+              if (model.getGold() >= price) {
+                model.addGold(-price);
+                model.addStar(1);
+              }
             }
-          } else {
-            if (model.getGold() >= 10) {
-              model.addGold(-10);
-              model.addStar(1);
-            }
-          }
         }
       }
       return;

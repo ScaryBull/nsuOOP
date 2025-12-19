@@ -23,8 +23,9 @@ private:
   std::vector<std::shared_ptr<Item>> craftedPotions;
   std::vector<Order> activeOrders;
   std::vector<AlchemyLevel> unlockedLevels;
+  std::vector<AlchemyLevel> availableLevels;
 
-  long long gold = 100;
+  long long gold = 50;
   int amuletBases = 0;
   int starCount = 0;
   bool secretPurchased = false;
@@ -57,6 +58,12 @@ public:
   void unlockLevel(const AlchemyLevel& level);
   int getMaxIngredients() const;
   bool hasLevel3() const;
+
+  // shop prices
+  int getLevelUnlockPrice(int level) const;
+  int getAmuletBasePrice() const;
+  int getSecretPrice() const;
+  int getStarPrice() const;
   
   int getAmuletBases() const;
   void setAmuletBases(int quantity);

@@ -8,13 +8,15 @@ private:
   int levelNumber;
   int maxIngredients;
   std::string imageName;
+  int price;
 
 public:
-  AlchemyLevel(int level, int maxIngs, const std::string& image);
+  AlchemyLevel(int level, int maxIngs, const std::string& image, int price = 0);
   
   int getLevelNumber() const;
   int getMaxIngredients() const;
   const std::string& getImageName() const;
+  int getPrice() const;
 };
 
 #endif

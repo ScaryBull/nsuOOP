@@ -1,7 +1,4 @@
 #include "../include/Potion.h"
-#include "../include/ItemFactories.h"
-#include <algorithm>
-#include <iomanip>
 
 
 Potion::Potion() : Item("", 1.0), properties() {}
