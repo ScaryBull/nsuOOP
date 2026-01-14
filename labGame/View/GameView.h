@@ -7,8 +7,13 @@
 #include <memory>
 #include <cmath>
 #include <algorithm>
+#include <map>
+#include <functional>
+#include <stdexcept>
+
 #include "../model/include/GameModel.h"
 #include "../model/include/Potion.h"
+#include "../model/include/Sellable.h"
 
 
 class GameView {
@@ -21,7 +26,7 @@ public:
 private:
   sf::Texture backgroundTexture;
   sf::Texture shelfTexture;
-  sf::Texture ingredientTextures[6];
+  sf::Texture ingredientTextures[GameModel::NUM_INGREDIENTS];
   sf::Texture cauldronTexture;
   sf::Texture potionTexture;
   sf::Texture mixButtonTexture;
@@ -45,16 +50,23 @@ private:
   void drawPotionWindow(sf::RenderWindow& window, const std::vector<int>& selectedIngredients, const std::vector<std::shared_ptr<Item>>& itemCells, const std::vector<int>& selectedPotionsForAmulet, const std::vector<int>& selectedPotionsForStar, bool amuletBaseSelected, bool starSelected);
   void drawPotionSlots(sf::RenderWindow& window, const std::vector<std::shared_ptr<Item>>& itemCells, const std::vector<int>& selectedPotionsForAmulet, const std::vector<int>& selectedPotionsForStar);
   void drawShopWindow(sf::RenderWindow& window, const GameModel& model);
+  void drawShopIngredientCell(sf::RenderWindow& window, const GameModel& model, int index, float cellX, float cellY, float spriteX, float spriteY, float spriteSize);
+  void drawShopLevelCell(sf::RenderWindow& window, const GameModel& model, int level, float cellX, float cellY, float spriteX, float spriteY, float spriteSize);
+  void drawShopAmuletCell(sf::RenderWindow& window, const GameModel& model, float cellX, float cellY, float spriteX, float spriteY, float spriteSize);
+  void drawShopSecretCell(sf::RenderWindow& window, const GameModel& model, float cellX, float cellY, float spriteX, float spriteY, float spriteSize);
   void drawTrashWindow(sf::RenderWindow& window, const std::vector<std::shared_ptr<Item>>& itemCells);
   void drawOrdersWindow(sf::RenderWindow& window, const GameModel& model);
   void drawTopBar(sf::RenderWindow& window, const GameModel& model);
   void drawSecretModal(sf::RenderWindow& window);
   void drawBlackScreenOverlay(sf::RenderWindow& window, bool showBlackScreen);
   bool loadTextureFromFile(sf::Texture& tex, const std::string& path);
+  void loadTextureOrThrow(sf::Texture& tex, const std::string& path);
+  void loadFontOrThrow(sf::Font& fnt, const std::string& path);
 
   sf::Sprite makeSprite(const sf::Texture& tex, float x, float y, float targetWidth = 0.0f, float targetHeight = 0.0f);
   sf::Text makeText(const std::string& str, unsigned int charSize, sf::Color color, float x, float y, bool center = false);
   sf::RectangleShape makeRect(float width, float height, sf::Color fill, sf::Color outline = sf::Color::Transparent, float outlineThickness = 0.0f, float x = 0.0f, float y = 0.0f);
+  bool isPotionSlotSelected(int slotIdx, const std::vector<int>& selectedPotionsForAmulet, const std::vector<int>& selectedPotionsForStar) const;
 
 public:
   static constexpr float WINDOW_WIDTH = 1024.0f;
@@ -111,6 +123,13 @@ public:
   static constexpr int SHOP_HEIGHT = ROWS * SHOP_CELL_SIZE + (ROWS - 1) * 8 + 70;
   static constexpr float SHOP_X = (WINDOW_WIDTH - SHOP_WIDTH) / 2.0f;
   static constexpr float SHOP_Y = (WINDOW_HEIGHT - SHOP_HEIGHT) / 2.0f;
+
+  static constexpr int SHOP_SLOTS = 10;
+  static constexpr int SHOP_IDX_LEVEL2 = GameModel::NUM_INGREDIENTS; 
+  static constexpr int SHOP_IDX_LEVEL3 = GameModel::NUM_INGREDIENTS + 1;
+  static constexpr int SHOP_IDX_AMULET = GameModel::NUM_INGREDIENTS + 2; 
+  static constexpr int SHOP_IDX_SECRET = GameModel::NUM_INGREDIENTS + 3;
+  static constexpr float SHOP_CELL_INNER_PAD = 6.0f;
 
   static constexpr float RADIUS = 80.0f;
   static constexpr int INGREDIENT_PER_POW = 2;

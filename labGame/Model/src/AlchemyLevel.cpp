@@ -1,5 +1,6 @@
 #include "../include/AlchemyLevel.h"
 
+
 AlchemyLevel::AlchemyLevel(int level, int maxIngs, const std::string& image, int price)
   : levelNumber(level), maxIngredients(maxIngs), imageName(image), price(price) {}
 

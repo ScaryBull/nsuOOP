@@ -9,12 +9,14 @@
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
+
 #include "../view/GameView.h"
 #include "../model/include/GameModel.h"
 #include "../model/include/ItemFactories.h"
 #include "../model/include/AlchemyLevel.h"
 #include "../model/include/Amulet.h"
 #include "../model/include/Item.h"
+#include "../model/include/Sellable.h"
 
 
 class GameController {

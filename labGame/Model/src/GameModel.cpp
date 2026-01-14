@@ -1,15 +1,14 @@
 #include "../include/GameModel.h"
-#include "../include/Star.h"
 
 
 void GameModel::initializeIngredients() {
     struct InitEntry { const char* name; const char* prop; int price; double mul; const char* img; } entries[] = {
-      {"Mandragora", "Healing", 5, 1.0, "ingredient_0.png"},
-      {"Ginger root", "Energy", 5, 1.0, "ingredient_1.png"},
-      {"Manticore ashes", "Strenght", 5, 1.0, "ingredient_2.png"},
-      {"Phoenix feather", "Revival", 5, 1.0, "ingredient_3.png"},
-      {"Hydra's fang", "Poison", 5, 1.0, "ingredient_4.png"},
-      {"Moon mushroom", "Invisibility", 5, 1.0, "ingredient_5.png"}
+      {"Mandragora", "Healing", INITIAL_INGREDIENT_QTY, 1.0, "ingredient_0.png"},
+      {"Ginger root", "Energy", INITIAL_INGREDIENT_QTY, 1.0, "ingredient_1.png"},
+      {"Manticore ashes", "Strenght", INITIAL_INGREDIENT_QTY, 1.0, "ingredient_2.png"},
+      {"Phoenix feather", "Revival", INITIAL_INGREDIENT_QTY, 1.0, "ingredient_3.png"},
+      {"Hydra's fang", "Poison", INITIAL_INGREDIENT_QTY, 1.0, "ingredient_4.png"},
+      {"Moon mushroom", "Invisibility", INITIAL_INGREDIENT_QTY, 1.0, "ingredient_5.png"}
     };
 
     for (const auto &e : entries) {
@@ -19,7 +18,11 @@ void GameModel::initializeIngredients() {
       std::shared_ptr<Item> raw;
       try {
         raw = ItemFactory::Instance().CreateObject(std::string("Ingredient"));
+      } catch (const std::exception& ex) {
+        std::cerr << "GameModel::initializeIngredients: factory threw std::exception: " << ex.what() << '\n';
+        raw = std::make_shared<Ingredient>();
       } catch (...) {
+        std::cerr << "GameModel::initializeIngredients: unknown exception from factory" << '\n';
         raw = std::make_shared<Ingredient>();
       }
       raw->load(iss);
@@ -28,48 +31,30 @@ void GameModel::initializeIngredients() {
   }
 
 void GameModel::initializeInventory() {
-    for (int i = 0; i < 6; ++i) {
-      inventory[i] = 5;
+    for (int i = 0; i < NUM_INGREDIENTS; ++i) {
+      inventory[i] = INITIAL_INGREDIENT_QTY;
     }
   }
 
 void GameModel::initializeLevels() {
-    // define available levels with their prices
     availableLevels.clear();
-    availableLevels.emplace_back(1, 2, "I.png", 0);
-    availableLevels.emplace_back(2, 5, "II.png", 100);
-    availableLevels.emplace_back(3, 5, "III.png", 300);
+    availableLevels.emplace_back(1, MIN_INGREDIENTS, "I.png", 0);
+    availableLevels.emplace_back(2, 5, "II.png", LEVEL2_PRICE);
+    availableLevels.emplace_back(3, 5, "III.png", LEVEL3_PRICE);
 
-    // unlock the first level by default
     auto it = std::find_if(availableLevels.begin(), availableLevels.end(), [](const AlchemyLevel& l){ return l.getLevelNumber() == 1; });
     if (it != availableLevels.end()) {
       unlockedLevels.push_back(*it);
+    } else {
+      throw std::runtime_error("GameModel::initializeLevels: required level 1 missing in availableLevels");
     }
   }
-
-void GameModel::generateOrders() {
-  activeOrders.clear();
-  std::uniform_int_distribution dist(0, 5);
-  for (int i = 0; i < 5; ++i) {
-    int idx1 = dist(rng);
-    int idx2 = dist(rng);
-    while (idx2 == idx1) {
-      idx2 = dist(rng);
-    }
-    
-    std::vector<std::string> props;
-    props.push_back(allIngredients[idx1]->getProperties().front());
-    props.push_back(allIngredients[idx2]->getProperties().front());
-    std::string orderName = "Order " + std::to_string(i + 1);
-    activeOrders.emplace_back(orderName, props);
-  }
-}
 
 GameModel::GameModel() : rng(std::chrono::steady_clock::now().time_since_epoch().count()) {
   initializeIngredients();
   initializeInventory();
   initializeLevels();
-  generateOrders();
+  regenerateOrdersForLevel();
 }
 
 int GameModel::getIngredientQuantity(int index) const {
@@ -112,45 +97,31 @@ void GameModel::removeOrder(size_t index) {
 }
 
 void GameModel::generateNewOrder(int orderIndex) {
-  std::uniform_int_distribution dist(0, 5);
-  int maxIngs = getMaxIngredients();
-  bool hasLevel3 = false;
-  for (const auto& level : unlockedLevels) {
-    if (level.getLevelNumber() == 3) {
-      hasLevel3 = true;
-      break;
-    }
-  }
+  auto spec = computeOrderSpec(orderIndex);
+  auto props = pickUniqueIngredientProperties(spec.propertyCount);
 
-  int propertyCount = 2;
-  std::string itemType = "potion";
-  if (maxIngs == 2) {
-    propertyCount = 2;
-    itemType = "potion";
-  } else if (maxIngs == 5 && !hasLevel3) {
-    std::vector propertyCounts = {2, 2, 3, 4, 5};
-    if (orderIndex >= 0 && orderIndex < 5) {
-      propertyCount = propertyCounts[orderIndex];
-    }
-    itemType = "potion";
-  } else if (hasLevel3) {
-    if (orderIndex == 0) {
-      std::uniform_int_distribution propCountDist(2, 5);
-      propertyCount = propCountDist(rng);
-      itemType = "amulet";
-    } else {
-      std::vector propertyCounts = {2, 3, 4, 5};
-      if (orderIndex >= 1 && orderIndex < 5) {
-        propertyCount = propertyCounts[orderIndex - 1];
-      }
-      itemType = "potion";
-    }
+  std::string orderName = "Order " + std::to_string(orderIndex + 1);
+  if (orderIndex >= 0 && orderIndex < static_cast<int>(activeOrders.size())) {
+    activeOrders[orderIndex] = Order(orderName, props, spec.itemType);
+  } else {
+    activeOrders.emplace_back(orderName, props, spec.itemType);
   }
-  
-  std::vector<std::string> props;
+}
+
+void GameModel::regenerateOrdersForLevel() {
+  activeOrders.clear();
+  for (int i = 0; i < NUM_ORDERS; ++i) {
+    generateNewOrder(i);
+  }
+}
+
+std::vector<std::string> GameModel::pickUniqueIngredientProperties(int count) {
+  std::uniform_int_distribution<int> dist(0, NUM_INGREDIENTS - 1);
   std::vector<int> usedIndices;
-  
-  for (int i = 0; i < propertyCount; ++i) {
+  std::vector<std::string> props;
+  props.reserve(count);
+
+  for (int i = 0; i < count; ++i) {
     int idx = dist(rng);
     while (std::find(usedIndices.begin(), usedIndices.end(), idx) != usedIndices.end()) {
       idx = dist(rng);
@@ -158,100 +129,7 @@ void GameModel::generateNewOrder(int orderIndex) {
     usedIndices.push_back(idx);
     props.push_back(allIngredients[idx]->getProperties().front());
   }
-  
-  std::string orderName = "Order " + std::to_string(orderIndex + 1);
-  if (orderIndex >= 0 && orderIndex < static_cast<int>(activeOrders.size())) {
-    activeOrders[orderIndex] = Order(orderName, props, itemType);
-  } else {
-    activeOrders.emplace_back(orderName, props, itemType);
-  }
-}
-
-void GameModel::regenerateOrdersForLevel() {
-  activeOrders.clear();
-  
-  int maxIngs = getMaxIngredients();
-  bool hasLevel3 = false;
-  for (const auto& level : unlockedLevels) {
-    if (level.getLevelNumber() == 3) {
-      hasLevel3 = true;
-      break;
-    }
-  }
-  
-  std::uniform_int_distribution dist(0, 5);
-  if (maxIngs == 2) {
-    for (int i = 0; i < 5; ++i) {
-      std::vector<int> usedIndices;
-      std::vector<std::string> props;
-      
-      for (int j = 0; j < 2; ++j) {
-        int idx = dist(rng);
-        while (std::find(usedIndices.begin(), usedIndices.end(), idx) != usedIndices.end()) {
-          idx = dist(rng);
-        }
-        usedIndices.push_back(idx);
-        props.push_back(allIngredients[idx]->getProperties().front());
-      }
-      
-      std::string orderName = "Order " + std::to_string(i + 1);
-      activeOrders.emplace_back(orderName, props, "potion");
-    }
-  } else if (maxIngs == 5 && !hasLevel3) {
-    std::vector propertyCounts = {2, 2, 3, 4, 5};
-    
-    for (size_t i = 0; i < propertyCounts.size(); ++i) {
-      int propertyCount = propertyCounts[i];
-      std::vector<int> usedIndices;
-      std::vector<std::string> props;
-      
-      for (int j = 0; j < propertyCount; ++j) {
-        int idx = dist(rng);
-        while (std::find(usedIndices.begin(), usedIndices.end(), idx) != usedIndices.end()) {
-          idx = dist(rng);
-        }
-        usedIndices.push_back(idx);
-        props.push_back(allIngredients[idx]->getProperties().front());
-      }
-      
-      std::string orderName = "Order " + std::to_string(i + 1);
-      activeOrders.emplace_back(orderName, props, "potion");
-    }
-  } else if (hasLevel3) {
-    std::uniform_int_distribution propCountDist(2, 5);
-    int propertyCount = propCountDist(rng);
-    std::vector<int> usedIndices;
-    std::vector<std::string> props;
-    
-    for (int j = 0; j < propertyCount; ++j) {
-      int idx = dist(rng);
-      while (std::find(usedIndices.begin(), usedIndices.end(), idx) != usedIndices.end()) {
-        idx = dist(rng);
-      }
-      usedIndices.push_back(idx);
-      props.push_back(allIngredients[idx]->getProperties().front());
-    }
-    
-    activeOrders.emplace_back("Order 1", props, "amulet");
-    std::vector propertyCounts = {2, 3, 4, 5};
-    for (size_t i = 0; i < propertyCounts.size(); ++i) {
-      int propertyCount = propertyCounts[i];
-      std::vector<int> usedIndices;
-      std::vector<std::string> props;
-      
-      for (int j = 0; j < propertyCount; ++j) {
-        int idx = dist(rng);
-        while (std::find(usedIndices.begin(), usedIndices.end(), idx) != usedIndices.end()) {
-          idx = dist(rng);
-        }
-        usedIndices.push_back(idx);
-        props.push_back(allIngredients[idx]->getProperties().front());
-      }
-      
-      std::string orderName = "Order " + std::to_string(i + 2);
-      activeOrders.emplace_back(orderName, props, "potion");
-    }
-  }
+  return props;
 }
 
 void GameModel::addGold(int amount) {
@@ -275,20 +153,19 @@ void GameModel::unlockLevel(const AlchemyLevel& level) {
 }
 
 int GameModel::getMaxIngredients() const {
-  int maxIngs = 2;
+  int maxIngs = MIN_INGREDIENTS;
   for (const auto& level : unlockedLevels) {
     if (level.getMaxIngredients() > maxIngs)
       maxIngs = level.getMaxIngredients();
   }
   if (secretPurchased)
-    maxIngs = 6;
+    maxIngs = NUM_INGREDIENTS;
   return maxIngs;
 }
 
-bool GameModel::hasLevel3() const {
-  for (const auto& level : unlockedLevels) {
-    if (level.getLevelNumber() == 3)
-      return true;
+bool GameModel::hasLevel(int level) const {
+  for (const auto& l : unlockedLevels) {
+    if (l.getLevelNumber() == level) return true;
   }
   return false;
 }
@@ -339,14 +216,75 @@ int GameModel::getLevelUnlockPrice(int level) const {
 }
 
 int GameModel::getAmuletBasePrice() const {
-  return 50;
+  return AMULET_BASE_PRICE;
 }
 
 int GameModel::getSecretPrice() const {
-  return 500;
+  return SECRET_PRICE;
 }
 
 int GameModel::getStarPrice() const {
   Star s;
   return s.getBuyPrice();
+}
+
+GameModel::OrderSpec GameModel::computeOrderSpec(int orderIndex) {
+  int maxIngs = getMaxIngredients();
+  bool hasLevel3 = hasLevel(3);
+
+  enum class OrderMode { BaseMin, LimitedTier, Level3Unlocked };
+  OrderMode mode = OrderMode::BaseMin;
+  if (maxIngs ==MIN_INGREDIENTS)
+    mode = OrderMode::BaseMin;
+  else if (maxIngs == TIER2_MAX_INGS && !hasLevel3) 
+    mode = OrderMode::LimitedTier;
+  else if (hasLevel3) 
+    mode = OrderMode::Level3Unlocked;
+
+  int propertyCount = MIN_INGREDIENTS;
+  std::string itemType = "potion";
+
+  switch (mode) {
+    case OrderMode::BaseMin: {
+      propertyCount = MIN_INGREDIENTS;
+      itemType = "potion";
+      break;
+    }
+    case OrderMode::LimitedTier: {
+      std::vector<int> propertyCounts;
+      propertyCounts.reserve(TIER2_MAX_INGS - MIN_INGREDIENTS + 2);
+      propertyCounts.push_back(MIN_INGREDIENTS);
+      propertyCounts.push_back(MIN_INGREDIENTS);
+      for (int v = MIN_INGREDIENTS + 1; v <= TIER2_MAX_INGS; ++v) propertyCounts.push_back(v);
+      if (orderIndex >= 0 && orderIndex < static_cast<int>(propertyCounts.size())) {
+        propertyCount = propertyCounts[orderIndex];
+      } else {
+        propertyCount = MIN_INGREDIENTS;
+      }
+      itemType = "potion";
+      break;
+    }
+    case OrderMode::Level3Unlocked: {
+      if (orderIndex == 0) {
+        std::uniform_int_distribution<int> propCountDist(MIN_INGREDIENTS, TIER2_MAX_INGS);
+        propertyCount = propCountDist(rng);
+        itemType = "amulet";
+      } else {
+        std::vector<int> propertyCounts;
+        propertyCounts.reserve(TIER2_MAX_INGS - MIN_INGREDIENTS + 1);
+        propertyCounts.push_back(MIN_INGREDIENTS);
+        for (int v = MIN_INGREDIENTS + 1; v <= TIER2_MAX_INGS; ++v) propertyCounts.push_back(v);
+        int mappedIndex = orderIndex - 1;
+        if (mappedIndex >= 0 && mappedIndex < static_cast<int>(propertyCounts.size())) {
+          propertyCount = propertyCounts[mappedIndex];
+        } else {
+          propertyCount = MIN_INGREDIENTS;
+        }
+        itemType = "potion";
+      }
+      break;
+    }
+  }
+
+  return {propertyCount, itemType};
 }

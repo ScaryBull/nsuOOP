@@ -6,9 +6,10 @@
 #include <algorithm>
 #include <iomanip>
 #include "Item.h"
+#include "Sellable.h"
 #include "ItemFactories.h"
 
-class Star : public Item {
+class Star : public Item, public Sellable {
 private:
   std::vector<std::string> properties;
   int buyPrice;

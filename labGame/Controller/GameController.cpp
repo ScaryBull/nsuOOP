@@ -2,7 +2,7 @@
 
 
 GameController::GameController() : model(), view() {
-  for (int i = 0; i < 6; ++i) {
+  for (int i = 0; i < GameModel::NUM_INGREDIENTS; ++i) {
     itemCells.push_back(nullptr);
   }
   starSelected = false;
@@ -15,7 +15,7 @@ int GameController::mixIngredients(const std::vector<int>& ingredients) {
     return -1;
   int result = 0;
   for (int idx : ingredients) {
-    result = (result + idx) % 6;
+    result = (result + idx) % GameModel::NUM_INGREDIENTS;
   }
   return result;
 }
@@ -69,7 +69,7 @@ void GameController::handleShelfClick(float mouseX, float mouseY) {
       }
     }
 
-    if (model.hasLevel3() && (model.getAmuletBases() > 0 || amuletBaseSelected) && selectedIngredients.empty()) {
+    if (model.hasLevel(3) && (model.getAmuletBases() > 0 || amuletBaseSelected) && selectedIngredients.empty()) {
       float hookY = GameView::SHELF_START_Y - (GameView::SHELF_HEIGHT + GameView::INGREDIENT_SIZE) / 2.0f;
       sf::Texture hookTexture;
       float hookTexHeight = static_cast<float>(GameView::INGREDIENT_SIZE);
@@ -104,7 +104,7 @@ void GameController::handleShelfClick(float mouseX, float mouseY) {
         int firstSlotIdx = selectedPotionsForStar[0];
         if (itemCells[firstSlotIdx] != nullptr && itemCells[firstSlotIdx]->getType() == "potion") {
           const auto& props = itemCells[firstSlotIdx]->getProperties();
-          if (static_cast<int>(props.size()) == 6) {
+          if (static_cast<int>(props.size()) == GameModel::NUM_INGREDIENTS) {
             itemCells[firstSlotIdx] = nullptr;
             showPotion = false;
             starSelected = false;
@@ -157,7 +157,7 @@ void GameController::handleShelfClick(float mouseX, float mouseY) {
     }
 
     if (amuletBaseSelected) {
-      for (int i = 0; i < 6; ++i) {
+      for (int i = 0; i < GameModel::NUM_INGREDIENTS; ++i) {
         float cellX = GameView::POTION_CELL_PADDING + i * (GameView::POTION_CELL_SIZE + GameView::POTION_CELL_PADDING);
         float cellY = GameView::WINDOW_HEIGHT - GameView::POTION_CELL_SIZE - GameView::POTION_CELL_PADDING;
 
@@ -182,7 +182,7 @@ void GameController::handleShelfClick(float mouseX, float mouseY) {
       return;
 
     if (starSelected) {
-      for (int i = 0; i < 6; ++i) {
+      for (int i = 0; i < GameModel::NUM_INGREDIENTS; ++i) {
         float cellX = GameView::POTION_CELL_PADDING + i * (GameView::POTION_CELL_SIZE + GameView::POTION_CELL_PADDING);
         float cellY = GameView::WINDOW_HEIGHT - GameView::POTION_CELL_SIZE - GameView::POTION_CELL_PADDING;
 
@@ -253,7 +253,7 @@ void GameController::handleShelfClick(float mouseX, float mouseY) {
         potionPtr->load(iss);
         model.addPotion(potionPtr);
 
-        for (int i = 0; i < 6; ++i) {
+        for (int i = 0; i < GameModel::NUM_INGREDIENTS; ++i) {
           if (itemCells[i] == nullptr) {
             itemCells[i] = potionPtr;
             break;
@@ -431,22 +431,17 @@ void GameController::handleShopBuy(float mouseX, float mouseY) {
     if (mouseX >= cellX && mouseX < cellX + GameView::SHOP_CELL_SIZE &&
       mouseY >= cellY && mouseY < cellY + GameView::SHOP_CELL_SIZE) {
 
-      if (i < 6) {
-        int price = model.getIngredient(i)->getBuyPrice();
+      if (i < GameModel::NUM_INGREDIENTS) {
+        auto ingPtr = model.getIngredient(i);
+        auto sellable = std::dynamic_pointer_cast<Sellable>(ingPtr);
+        int price = (sellable ? sellable->getBuyPrice() : 0);
         if (model.getGold() >= price) {
           int currentQuantity = model.getIngredientQuantity(i);
           model.setIngredientQuantity(i, currentQuantity + 1);
           model.addGold(-price);
         }
       } else if (i == 6) {
-        const auto& levels = model.getUnlockedLevels();
-        bool hasLevel2 = false;
-        for (const auto& level : levels) {
-          if (level.getLevelNumber() == 2) {
-            hasLevel2 = true;
-            break;
-          }
-        }
+        bool hasLevel2 = model.hasLevel(2);
         
         if (!hasLevel2) {
           int price = model.getLevelUnlockPrice(2);
@@ -458,17 +453,8 @@ void GameController::handleShopBuy(float mouseX, float mouseY) {
           }
         }
       } else if (i == 7) {
-        const auto& levels = model.getUnlockedLevels();
-        bool hasLevel3 = false;
-        bool hasLevel2 = false;
-        for (const auto& level : levels) {
-          if (level.getLevelNumber() == 3) {
-            hasLevel3 = true;
-          }
-          if (level.getLevelNumber() == 2) {
-            hasLevel2 = true;
-          }
-        }
+        bool hasLevel3 = model.hasLevel(3);
+        bool hasLevel2 = model.hasLevel(2);
         
         if (hasLevel2 && !hasLevel3) {
           int price = model.getLevelUnlockPrice(3);
@@ -480,14 +466,7 @@ void GameController::handleShopBuy(float mouseX, float mouseY) {
           }
         }
       } else if (i == 8) {
-        const auto& levels = model.getUnlockedLevels();
-        bool hasLevel3 = false;
-        for (const auto& level : levels) {
-          if (level.getLevelNumber() == 3) {
-            hasLevel3 = true;
-            break;
-          }
-        }
+        bool hasLevel3 = model.hasLevel(3);
         if (hasLevel3) {
           int price = model.getAmuletBasePrice();
           if (model.getGold() >= price) {
@@ -497,14 +476,7 @@ void GameController::handleShopBuy(float mouseX, float mouseY) {
           }
         }
       } else if (i == 9) {
-        const auto& levels = model.getUnlockedLevels();
-        bool hasLevel3 = false;
-        for (const auto& level : levels) {
-          if (level.getLevelNumber() == 3) {
-            hasLevel3 = true;
-            break;
-          }
-        }
+        bool hasLevel3 = model.hasLevel(3);
 
         if (hasLevel3) {
             if (!model.isSecretPurchased()) {
@@ -535,7 +507,7 @@ void GameController::handleOrderClick(float mouseX, float mouseY) {
     float elemY = GameView::PANEL_Y + 30.0f + i * (GameView::ELEMENT_HEIGHT + GameView::ELEMENT_PADDING);
 
     if (mouseX >= elemX && mouseX <= elemX + GameView::ELEMENT_WIDTH && mouseY >= elemY && mouseY <= elemY + GameView::ELEMENT_HEIGHT) {
-      for (int slotIdx = 0; slotIdx < 6; ++slotIdx) {
+      for (int slotIdx = 0; slotIdx < GameModel::NUM_INGREDIENTS; ++slotIdx) {
         if (itemCells[slotIdx] != nullptr) {
           const auto& itemProps = itemCells[slotIdx]->getProperties();
           const auto& orderProps = orders[i].requiredProperties;
@@ -577,7 +549,7 @@ void GameController::handleTrashPotionClick(float mouseX, float mouseY) {
   const float cellPadding = 10.0f;
   const float startX = GameView::TRASH_X + 20.0f;
   const float startY = GameView::TRASH_Y + 70.0f;
-  for (int i = 0; i < 6; ++i) {
+  for (int i = 0; i < GameModel::NUM_INGREDIENTS; ++i) {
     float cellX = startX + i * (cellSize + cellPadding);
     float cellY = startY;
     if (mouseX >= cellX && mouseX <= cellX + cellSize &&
@@ -616,7 +588,7 @@ void GameController::handleBlackScreenClick(float mouseX, float mouseY, sf::Rend
     selectedPotionsForStar.clear();
     allSlots.clear();
     itemCells.clear();
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < GameModel::NUM_INGREDIENTS; ++i) {
       itemCells.push_back(nullptr);
     }
     return;

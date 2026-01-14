@@ -6,10 +6,11 @@
 #include <algorithm>
 #include <iomanip>
 #include "Item.h"
+#include "Sellable.h"
 #include "ItemFactories.h"
 
 
-class Amulet : public Item {
+class Amulet : public Item, public Sellable {
 private:
   std::vector<std::string> properties;
 

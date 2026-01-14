@@ -3,11 +3,13 @@
 
 #include <string>
 #include <iomanip>
+
 #include "Item.h"
+#include "Sellable.h"
 #include "ItemFactories.h"
 
 
-class Ingredient : public Item {
+class Ingredient : public Item, public Sellable {
 private:
   std::string property;
   int buyPrice;

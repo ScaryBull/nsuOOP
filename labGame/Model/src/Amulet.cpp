@@ -21,12 +21,10 @@ std::string Amulet::getType() const {
   return "amulet";
 }
 
-namespace {
-  std::shared_ptr<Item> CreateAmulet() { return std::make_shared<Amulet>(); }
-  std::shared_ptr<Item> CloneAmulet(const Item* model) { return std::make_shared<Amulet>(*static_cast<const Amulet*>(model)); }
-  const bool registeredAmulet = ItemFactory::Instance().Register(std::string("Amulet"), CreateAmulet);
-  const bool registeredAmuletClone = ItemCloneFactory::Instance().Register(std::type_index(typeid(Amulet)), CloneAmulet);
-}
+static std::shared_ptr<Item> CreateAmulet() { return std::make_shared<Amulet>(); }
+static std::shared_ptr<Item> CloneAmulet(const Item* model) { return std::make_shared<Amulet>(*static_cast<const Amulet*>(model)); }
+static const bool registeredAmulet = ItemFactory::Instance().Register(std::string("Amulet"), CreateAmulet);
+static const bool registeredAmuletClone = ItemCloneFactory::Instance().Register(std::type_index(typeid(Amulet)), CloneAmulet);
 
 int Amulet::getBuyPrice() const {
   return 0;

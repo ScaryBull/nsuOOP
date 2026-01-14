@@ -2,50 +2,55 @@
 
 
 GameView::GameView() {
-  if (!backgroundTexture.loadFromFile("Wall.jpg"))
-    exit(-1);
-  if (!shelfTexture.loadFromFile("shelf.png"))
-    exit(-1);
-  if (!cauldronTexture.loadFromFile("cauldron.png"))
-    exit(-1);
-  if (!potionTexture.loadFromFile("potion.png"))
-    exit(-1);
-  if (!mixButtonTexture.loadFromFile("mix_button.png"))
-    exit(-1);
-  if (!potionResultTexture.loadFromFile("potion_result.png"))
-    exit(-1);
-  if (!amuletResultTexture.loadFromFile("amulet_result.png"))
-    exit(-1);
-  if (!shopButtonTexture.loadFromFile("shop_button.png"))
-    exit(-1);
-  if (!ordersButtonTexture.loadFromFile("orders_button.png"))
-    exit(-1);
-  if (!trashButtonTexture.loadFromFile("trash.png"))
-    exit(-1);
-  loadTextureFromFile(menuButtonTexture, "menu.png");
-  if (!font.openFromFile("visitor1.ttf"))
-    exit(-1);
-  font.setSmooth(false);
+  try {
+    loadTextureOrThrow(backgroundTexture, "Wall.jpg");
+    loadTextureOrThrow(shelfTexture, "shelf.png");
+    loadTextureOrThrow(cauldronTexture, "cauldron.png");
+    loadTextureOrThrow(potionTexture, "potion.png");
+    loadTextureOrThrow(mixButtonTexture, "mix_button.png");
+    loadTextureOrThrow(potionResultTexture, "potion_result.png");
+    loadTextureOrThrow(amuletResultTexture, "amulet_result.png");
+    loadTextureOrThrow(shopButtonTexture, "shop_button.png");
+    loadTextureOrThrow(ordersButtonTexture, "orders_button.png");
+    loadTextureOrThrow(trashButtonTexture, "trash.png");
+    loadTextureFromFile(menuButtonTexture, "menu.png");
+    loadFontOrThrow(font, "visitor1.ttf");
+    font.setSmooth(false);
 
-  const char* ingredientFiles[6] = {
-    "ingredient_0.png", "ingredient_1.png", "ingredient_2.png",
-    "ingredient_3.png", "ingredient_4.png", "ingredient_5.png"
-  };
+    std::vector<std::string> ingredientFiles = {
+      "ingredient_0.png", "ingredient_1.png", "ingredient_2.png",
+      "ingredient_3.png", "ingredient_4.png", "ingredient_5.png"
+    };
 
-  for (int i = 0; i < 6; ++i) {
-    if (!ingredientTextures[i].loadFromFile(ingredientFiles[i]))
-      exit(-1);
+    size_t count = std::min<size_t>(ingredientFiles.size(), static_cast<size_t>(GameModel::NUM_INGREDIENTS));
+    for (size_t i = 0; i < count; ++i) {
+      loadTextureOrThrow(ingredientTextures[static_cast<int>(i)], ingredientFiles[i]);
+    }
+
+    loadTextureFromFile(level2Texture, "II.png");
+    loadTextureFromFile(level3Texture, "III.png");
+    loadTextureFromFile(amuletTexture, "amulet.png");
+    loadTextureFromFile(secretTexture, "secret.png");
+    loadTextureFromFile(starTexture, "star.png");
+  } catch (const std::exception& ex) {
+    throw std::runtime_error(std::string("GameView initialization failed: ") + ex.what());
   }
-
-  loadTextureFromFile(level2Texture, "II.png");
-  loadTextureFromFile(level3Texture, "III.png");
-  loadTextureFromFile(amuletTexture, "amulet.png");
-  loadTextureFromFile(secretTexture, "secret.png");
-  loadTextureFromFile(starTexture, "star.png");
 }
 
 bool GameView::loadTextureFromFile(sf::Texture& tex, const std::string& path) {
   return tex.loadFromFile(path);
+}
+
+void GameView::loadTextureOrThrow(sf::Texture& tex, const std::string& path) {
+  if (!tex.loadFromFile(path)) {
+    throw std::runtime_error(std::string("Failed to load texture: ") + path);
+  }
+}
+
+void GameView::loadFontOrThrow(sf::Font& fnt, const std::string& path) {
+  if (!fnt.openFromFile(path)) {
+    throw std::runtime_error(std::string("Failed to load font: ") + path);
+  }
 }
 
 sf::Sprite GameView::makeSprite(const sf::Texture& tex, float x, float y, float targetWidth, float targetHeight) {
@@ -68,6 +73,7 @@ sf::Text GameView::makeText(const std::string& str, unsigned int charSize, sf::C
     t.setOrigin({t.getLocalBounds().position.x + t.getLocalBounds().size.x / 2.0f,
                  t.getLocalBounds().position.y + t.getLocalBounds().size.y / 2.0f});
   }
+  
   t.setPosition({x, y});
   return t;
 }
@@ -79,6 +85,16 @@ sf::RectangleShape GameView::makeRect(float width, float height, sf::Color fill,
   r.setOutlineThickness(outlineThickness);
   r.setPosition({x, y});
   return r;
+}
+
+bool GameView::isPotionSlotSelected(int slotIdx, const std::vector<int>& selectedPotionsForAmulet, const std::vector<int>& selectedPotionsForStar) const {
+  for (int selectedIdx : selectedPotionsForAmulet) {
+    if (selectedIdx == slotIdx) return true;
+  }
+  for (int selectedIdx : selectedPotionsForStar) {
+    if (selectedIdx == slotIdx) return true;
+  }
+  return false;
 }
 
 void GameView::drawShelves(sf::RenderWindow& window, const GameModel& model, std::vector<IngredientSlot>& allSlots, bool showPotion, bool amuletBaseSelected, bool starSelected) {
@@ -139,16 +155,7 @@ void GameView::drawShelves(sf::RenderWindow& window, const GameModel& model, std
 }
 
 void GameView::drawShelfHook(sf::RenderWindow& window, const GameModel& model, bool showPotion, bool amuletBaseSelected) {
-  const auto& unlockedLevels = model.getUnlockedLevels();
-  bool hasLevel3 = false;
-  for (const auto& level : unlockedLevels) {
-    if (level.getLevelNumber() == 3) {
-      hasLevel3 = true;
-      break;
-    }
-  }
-
-  if (!hasLevel3)
+  if (!model.hasLevel(3))
     return;
 
   sf::Texture hookTexture;
@@ -196,6 +203,59 @@ void GameView::drawButtons(sf::RenderWindow& window) {
     window.draw(makeSprite(menuButtonTexture, MENU_BUTTON_X, MENU_BUTTON_Y, MENU_BUTTON_SIZE, MENU_BUTTON_SIZE));
 }
 
+void GameView::drawShopIngredientCell(sf::RenderWindow& window, const GameModel& model, int index, float cellX, float cellY, float spriteX, float spriteY, float spriteSize) {
+  window.draw(makeSprite(ingredientTextures[index], cellX, cellY, SHOP_CELL_SIZE, SHOP_CELL_SIZE));
+  const auto& ing = model.getIngredient(index);
+  if (!ing) {
+    throw std::runtime_error(std::string("GameView::drawShopWindow: missing ingredient at index ") + std::to_string(index));
+  }
+  auto sellable = std::dynamic_pointer_cast<Sellable>(ing);
+  int price = (sellable ? sellable->getBuyPrice() : 0);
+  window.draw(makeText(std::to_string(price), 16, sf::Color::Yellow, cellX + 5.0f, cellY + 5.0f, false));
+}
+
+void GameView::drawShopLevelCell(sf::RenderWindow& window, const GameModel& model, int level, float cellX, float cellY, float spriteX, float spriteY, float spriteSize) {
+  bool hasLevel = model.hasLevel(level);
+  sf::Texture& tex = (level == 2) ? level2Texture : level3Texture;
+  if (tex.getSize().x > 0 && tex.getSize().y > 0) {
+    sf::Sprite levelSprite = makeSprite(tex, spriteX, spriteY, spriteSize, spriteSize);
+    if (hasLevel) levelSprite.setColor(sf::Color(120, 120, 120));
+    else if (level == 3 && !model.hasLevel(2)) levelSprite.setColor(sf::Color(80, 80, 80));
+    window.draw(levelSprite);
+  }
+
+  if (!hasLevel) {
+    int price = model.getLevelUnlockPrice(level);
+    window.draw(makeText(std::to_string(price), 14, sf::Color::Yellow, cellX + 5.0f, cellY + 5.0f, false));
+  }
+}
+
+void GameView::drawShopAmuletCell(sf::RenderWindow& window, const GameModel& model, float cellX, float cellY, float spriteX, float spriteY, float spriteSize) {
+  bool hasLevel3 = model.hasLevel(3);
+  if (hasLevel3 && amuletTexture.getSize().x > 0 && amuletTexture.getSize().y > 0) {
+    window.draw(makeSprite(amuletTexture, spriteX, spriteY, spriteSize, spriteSize));
+    int price = model.getAmuletBasePrice();
+    window.draw(makeText(std::to_string(price), 14, sf::Color::Yellow, cellX + 5.0f, cellY + 5.0f, false));
+  }
+}
+
+void GameView::drawShopSecretCell(sf::RenderWindow& window, const GameModel& model, float cellX, float cellY, float spriteX, float spriteY, float spriteSize) {
+  bool hasLevel3 = model.hasLevel(3);
+  if (!hasLevel3) return;
+
+  if (model.isSecretPurchased()) {
+    if (starTexture.getSize().x > 0 && starTexture.getSize().y > 0) {
+      window.draw(makeSprite(starTexture, spriteX, spriteY, spriteSize, spriteSize));
+    }
+    window.draw(makeText(std::to_string(model.getStarPrice()), 14, sf::Color::Yellow, cellX + 5.0f, cellY + 5.0f, false));
+  } else {
+    if (secretTexture.getSize().x > 0 && secretTexture.getSize().y > 0) {
+      window.draw(makeSprite(secretTexture, spriteX, spriteY, spriteSize, spriteSize));
+    }
+    window.draw(makeText(std::to_string(model.getSecretPrice()), 14, sf::Color::Yellow, cellX + 5.0f, cellY + 5.0f, false));
+  }
+}
+
 void GameView::drawPotionWindow(sf::RenderWindow& window, const std::vector<int>& selectedIngredients, const std::vector<std::shared_ptr<Item>>& itemCells, const std::vector<int>& selectedPotionsForAmulet, const std::vector<int>& selectedPotionsForStar, bool amuletBaseSelected, bool starSelected) {
   window.draw(makeSprite(potionTexture, (WINDOW_WIDTH - POTION_SIZE) / 2.0f, (WINDOW_HEIGHT - POTION_SIZE) / 2.0f, POTION_SIZE, POTION_SIZE));
 
@@ -215,8 +275,7 @@ void GameView::drawPotionWindow(sf::RenderWindow& window, const std::vector<int>
           float angle = (2.0f * 3.14159f * i) / selectedPotionsForStar.size();
           float potionX = WINDOW_WIDTH / 2.0f - SCALE_SIZE / 2.0f + RADIUS * std::cos(angle);
           float potionY = WINDOW_HEIGHT / 2.0f - SCALE_SIZE / 2.0f + RADIUS * std::sin(angle);
-
-            window.draw(makeSprite(potionTexture, potionX, potionY, SCALE_SIZE, SCALE_SIZE));
+          window.draw(makeSprite(potionTexture, potionX, potionY, SCALE_SIZE, SCALE_SIZE));
         }
       }
     }
@@ -274,25 +333,11 @@ void GameView::drawPotionWindow(sf::RenderWindow& window, const std::vector<int>
 }
 
 void GameView::drawPotionSlots(sf::RenderWindow& window, const std::vector<std::shared_ptr<Item>>& itemCells, const std::vector<int>& selectedPotionsForAmulet, const std::vector<int>& selectedPotionsForStar) {
-  for (int i = 0; i < 6; ++i) {
+  for (int i = 0; i < GameModel::NUM_INGREDIENTS; ++i) {
     float cellX = POTION_CELL_PADDING + i * (POTION_CELL_SIZE + POTION_CELL_PADDING);
     float cellY = WINDOW_HEIGHT - POTION_CELL_SIZE - POTION_CELL_PADDING;
 
-    bool isSelected = false;
-    for (int selectedIdx : selectedPotionsForAmulet) {
-      if (selectedIdx == i) {
-        isSelected = true;
-        break;
-      }
-    }
-    if (!isSelected) {
-      for (int selectedIdx : selectedPotionsForStar) {
-        if (selectedIdx == i) {
-          isSelected = true;
-          break;
-        }
-      }
-    }
+    bool isSelected = isPotionSlotSelected(i, selectedPotionsForAmulet, selectedPotionsForStar);
 
     sf::RectangleShape cell = makeRect(POTION_CELL_SIZE, POTION_CELL_SIZE, sf::Color(50,50,50,200), isSelected ? sf::Color::Yellow : sf::Color::White, 2.0f, cellX, cellY);
     window.draw(cell);
@@ -318,6 +363,7 @@ void GameView::drawPotionSlots(sf::RenderWindow& window, const std::vector<std::
 }
 
 void GameView::drawShopWindow(sf::RenderWindow& window, const GameModel& model) {
+  const auto& levels = model.getUnlockedLevels();
   sf::RectangleShape shopBg = makeRect(SHOP_WIDTH, SHOP_HEIGHT, sf::Color(139,69,19), sf::Color::White, 3.0f, SHOP_X, SHOP_Y);
   window.draw(shopBg);
 
@@ -326,96 +372,24 @@ void GameView::drawShopWindow(sf::RenderWindow& window, const GameModel& model) 
     int row = i / COLS;
     float cellX = SHOP_X + 15 + col * (SHOP_CELL_SIZE + 8);
     float cellY = SHOP_Y + 15 + row * (SHOP_CELL_SIZE + 8);
+    float innerPad = GameView::SHOP_CELL_INNER_PAD;
+    float spriteX = cellX + innerPad;
+    float spriteY = cellY + innerPad;
+    float spriteSize = static_cast<float>(SHOP_CELL_SIZE) - 2.0f * innerPad;
 
     sf::RectangleShape cell = makeRect(SHOP_CELL_SIZE, SHOP_CELL_SIZE, sf::Color(100,100,100), sf::Color::Transparent, 0.0f, cellX, cellY);
     window.draw(cell);
 
-    if (i < 6) {
-      window.draw(makeSprite(ingredientTextures[i], cellX, cellY, SHOP_CELL_SIZE, SHOP_CELL_SIZE));
-      int price = 5;
-      try {
-        price = model.getIngredient(i)->getBuyPrice();
-      } catch (...) {
-        price = 5;
-      }
-      window.draw(makeText(std::to_string(price), 16, sf::Color::Yellow, cellX + 5.0f, cellY + 5.0f, false));
-    } else if (i == 6) {
-      const auto& levels = model.getUnlockedLevels();
-      bool hasLevel2 = std::any_of(levels.begin(), levels.end(), 
-        [](const auto& level) { return level.getLevelNumber() == 2; });
-
-      if (level2Texture.getSize().x > 0 && level2Texture.getSize().y > 0) {
-        float innerPad = 6.0f;
-        float spriteX = cellX + innerPad;
-        float spriteY = cellY + innerPad;
-        float spriteSize = static_cast<float>(SHOP_CELL_SIZE) - 2.0f * innerPad;
-        sf::Sprite levelSprite = makeSprite(level2Texture, spriteX, spriteY, spriteSize, spriteSize);
-        if (hasLevel2) levelSprite.setColor(sf::Color(120, 120, 120));
-        window.draw(levelSprite);
-      }
-
-      if (!hasLevel2) {
-        int price = model.getLevelUnlockPrice(2);
-        window.draw(makeText(std::to_string(price), 14, sf::Color::Yellow, cellX + 5.0f, cellY + 5.0f, false));
-      }
-    } else if (i == 7) {
-      const auto& levels = model.getUnlockedLevels();
-      bool hasLevel2 = std::any_of(levels.begin(), levels.end(), 
-        [](const auto& level) { return level.getLevelNumber() == 2; });
-      bool hasLevel3 = std::any_of(levels.begin(), levels.end(), 
-        [](const auto& level) { return level.getLevelNumber() == 3; });
-
-      if (level3Texture.getSize().x > 0 && level3Texture.getSize().y > 0) {
-        float innerPad = 6.0f;
-        float spriteX = cellX + innerPad;
-        float spriteY = cellY + innerPad;
-        float spriteSize = static_cast<float>(SHOP_CELL_SIZE) - 2.0f * innerPad;
-        sf::Sprite levelSprite = makeSprite(level3Texture, spriteX, spriteY, spriteSize, spriteSize);
-        if (hasLevel3) levelSprite.setColor(sf::Color(120, 120, 120));
-        else if (!hasLevel2) levelSprite.setColor(sf::Color(80, 80, 80));
-        window.draw(levelSprite);
-      }
-
-      if (hasLevel2 && !hasLevel3) {
-        int price = model.getLevelUnlockPrice(3);
-        window.draw(makeText(std::to_string(price), 14, sf::Color::Yellow, cellX + 5.0f, cellY + 5.0f, false));
-      }
-    } else if (i == 8) {
-      const auto& levels = model.getUnlockedLevels();
-      bool hasLevel3 = std::any_of(levels.begin(), levels.end(), 
-        [](const auto& level) { return level.getLevelNumber() == 3; });
-
-      if (hasLevel3 && amuletTexture.getSize().x > 0 && amuletTexture.getSize().y > 0) {
-        float innerPad = 6.0f;
-        float spriteX = cellX + innerPad;
-        float spriteY = cellY + innerPad;
-        float spriteSize = static_cast<float>(SHOP_CELL_SIZE) - 2.0f * innerPad;
-        window.draw(makeSprite(amuletTexture, spriteX, spriteY, spriteSize, spriteSize));
-        int price = model.getAmuletBasePrice();
-        window.draw(makeText(std::to_string(price), 14, sf::Color::Yellow, cellX + 5.0f, cellY + 5.0f, false));
-      }
-    } else if (i == 9) {
-      const auto& levels = model.getUnlockedLevels();
-      bool hasLevel3 = std::any_of(levels.begin(), levels.end(), 
-        [](const auto& level) { return level.getLevelNumber() == 3; });
-
-      if (hasLevel3) {
-        float innerPad = 6.0f;
-        float spriteX = cellX + innerPad;
-        float spriteY = cellY + innerPad;
-        float spriteSize = static_cast<float>(SHOP_CELL_SIZE) - 2.0f * innerPad;
-        if (model.isSecretPurchased()) {
-          if (starTexture.getSize().x > 0 && starTexture.getSize().y > 0) {
-            window.draw(makeSprite(starTexture, spriteX, spriteY, spriteSize, spriteSize));
-          }
-          window.draw(makeText(std::to_string(model.getStarPrice()), 14, sf::Color::Yellow, cellX + 5.0f, cellY + 5.0f, false));
-        } else {
-          if (secretTexture.getSize().x > 0 && secretTexture.getSize().y > 0) {
-            window.draw(makeSprite(secretTexture, spriteX, spriteY, spriteSize, spriteSize));
-          }
-          window.draw(makeText(std::to_string(model.getSecretPrice()), 14, sf::Color::Yellow, cellX + 5.0f, cellY + 5.0f, false));
-        }
-      }
+    if (i < GameModel::NUM_INGREDIENTS) {
+      drawShopIngredientCell(window, model, i, cellX, cellY, spriteX, spriteY, spriteSize);
+    } else if (i == GameView::SHOP_IDX_LEVEL2) {
+      drawShopLevelCell(window, model, 2, cellX, cellY, spriteX, spriteY, spriteSize);
+    } else if (i == GameView::SHOP_IDX_LEVEL3) {
+      drawShopLevelCell(window, model, 3, cellX, cellY, spriteX, spriteY, spriteSize);
+    } else if (i == GameView::SHOP_IDX_AMULET) {
+      drawShopAmuletCell(window, model, cellX, cellY, spriteX, spriteY, spriteSize);
+    } else if (i == GameView::SHOP_IDX_SECRET) {
+      drawShopSecretCell(window, model, cellX, cellY, spriteX, spriteY, spriteSize);
     }
   }
   
@@ -432,7 +406,7 @@ void GameView::drawTrashWindow(sf::RenderWindow& window, const std::vector<std::
   const float startX = TRASH_X + 20.0f;
   const float startY = TRASH_Y + 70.0f;
   
-  for (int i = 0; i < 6; ++i) {
+  for (int i = 0; i < GameModel::NUM_INGREDIENTS; ++i) {
     float cellX = startX + i * (cellSize + cellPadding);
     float cellY = startY;
 
@@ -560,25 +534,19 @@ void GameView::draw(sf::RenderWindow& window, const GameModel& model, bool showP
   drawShelfHook(window, model, showPotion, amuletBaseSelected);
   drawButtons(window);
 
-  if (showPotion)
-    drawPotionWindow(window, selectedIngredients, itemCells, selectedPotionsForAmulet, selectedPotionsForStar, amuletBaseSelected, starSelected);
+  using Handler = std::pair<std::function<bool()>, std::function<void()>>;
+  std::vector<Handler> handlers;
 
-  drawPotionSlots(window, itemCells, selectedPotionsForAmulet, selectedPotionsForStar);
+  handlers.push_back({[&]() { return showPotion; }, [&]() { drawPotionWindow(window, selectedIngredients, itemCells, selectedPotionsForAmulet, selectedPotionsForStar, amuletBaseSelected, starSelected); }});
+  handlers.push_back({[&]() { return true; }, [&]() { drawPotionSlots(window, itemCells, selectedPotionsForAmulet, selectedPotionsForStar); }});
+  handlers.push_back({[&]() { return showShop; }, [&]() { drawShopWindow(window, model); }});
+  handlers.push_back({[&]() { return showTrash; }, [&]() { drawTrashWindow(window, itemCells); }});
+  handlers.push_back({[&]() { return true; }, [&]() { drawTopBar(window, model); }});
+  handlers.push_back({[&]() { return showOrders && !showPotion && !showShop && !showTrash; }, [&]() { drawOrdersWindow(window, model); }});
+  handlers.push_back({[&]() { return showSecretWindow; }, [&]() { drawSecretModal(window); }});
+  handlers.push_back({[&]() { return showBlackScreen || showMenuOverlay; }, [&]() { drawBlackScreenOverlay(window, showBlackScreen); }});
 
-  if (showShop)
-    drawShopWindow(window, model);
-
-  if (showTrash)
-    drawTrashWindow(window, itemCells);
-
-  drawTopBar(window, model);
-
-  if (showOrders && !showPotion && !showShop && !showTrash)
-    drawOrdersWindow(window, model);
-
-  if (showSecretWindow)
-    drawSecretModal(window);
-
-  if (showBlackScreen || showMenuOverlay)
-    drawBlackScreenOverlay(window, showBlackScreen);
+  for (const auto &h : handlers) {
+    if (h.first()) h.second();
+  }
 }

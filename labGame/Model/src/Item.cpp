@@ -16,10 +16,6 @@ double Item::getSellMultiplier() const {
   return sellMultiplier;
 }
 
-const std::string& Item::getImageFileName() const {
-  return imageFile;
-}
-
 const std::string& Item::getImageFile() const {
   return imageFile;
 }
