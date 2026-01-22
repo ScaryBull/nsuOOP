@@ -50,7 +50,5 @@ bool Potion::matchesRecipe(const std::vector<std::string>& input) const {
 
 namespace {
   std::shared_ptr<Item> CreatePotion() { return std::make_shared<Potion>(); }
-  std::shared_ptr<Item> ClonePotion(const Item* model) { return std::make_shared<Potion>(*static_cast<const Potion*>(model)); }
   const bool registeredPotion = ItemFactory::Instance().Register(std::string("Potion"), CreatePotion);
-  const bool registeredPotionClone = ItemCloneFactory::Instance().Register(std::type_index(typeid(Potion)), ClonePotion);
 }

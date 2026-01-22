@@ -30,4 +30,7 @@ add_executable(labGame ${SOURCES}
         controller/GameController.h
 )
 
-target_link_libraries(labGame sfml-graphics sfml-window sfml-system)
+target_link_libraries(labGame 
+    debug sfml-graphics-d debug sfml-window-d debug sfml-system-d
+    optimized sfml-graphics optimized sfml-window optimized sfml-system
+)

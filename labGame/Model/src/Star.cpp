@@ -23,9 +23,7 @@ std::string Star::getType() const {
 
 namespace {
   std::shared_ptr<Item> CreateStar() { return std::make_shared<Star>(); }
-  std::shared_ptr<Item> CloneStar(const Item* model) { return std::make_shared<Star>(*static_cast<const Star*>(model)); }
   const bool registeredStar = ItemFactory::Instance().Register(std::string("Star"), CreateStar);
-  const bool registeredStarClone = ItemCloneFactory::Instance().Register(std::type_index(typeid(Star)), CloneStar);
 }
 
 int Star::getBuyPrice() const {
@@ -42,15 +40,4 @@ int Star::getSellPrice() const {
 
 const std::vector<std::string>& Star::getProperties() const {
   return properties;
-}
-
-bool Star::matchesRecipe(const std::vector<std::string>& input) const {
-  if (input.size() != properties.size())
-    return false;
-
-  auto a = properties;
-  auto b = input;
-  std::sort(a.begin(), a.end());
-  std::sort(b.begin(), b.end());
-  return a == b;
 }

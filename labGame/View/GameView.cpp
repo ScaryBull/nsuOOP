@@ -547,6 +547,7 @@ void GameView::draw(sf::RenderWindow& window, const GameModel& model, bool showP
   handlers.push_back({[&]() { return showBlackScreen || showMenuOverlay; }, [&]() { drawBlackScreenOverlay(window, showBlackScreen); }});
 
   for (const auto &h : handlers) {
-    if (h.first()) h.second();
+    if (h.first()) 
+      h.second();
   }
 }

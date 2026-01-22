@@ -270,21 +270,11 @@ void GameController::handleShelfClick(float mouseX, float mouseY) {
 void GameController::handleCauldronClick(float mouseX, float mouseY) {
     if (mouseX >= GameView::CAULDRON_X && mouseX < GameView::CAULDRON_X + GameView::CAULDRON_BUTTON_SIZE &&
       mouseY >= GameView::CAULDRON_Y && mouseY <= GameView::CAULDRON_Y + GameView::CAULDRON_BUTTON_SIZE) {
-      if (showSecretWindow) {
-        showSecretWindow = false;
-        showPotion = true;
-        showShop = false;
-        showOrders = false;
-        showTrash = false;
-        amuletBaseSelected = false;
-        selectedPotionsForAmulet.clear();
-        return;
-      }
-
       if (showPotion) {
         refundSelections();
         showPotion = false;
       } else {
+        showSecretWindow = false;
         showPotion = true;
         showShop = false;
         showOrders = false;
@@ -293,8 +283,8 @@ void GameController::handleCauldronClick(float mouseX, float mouseY) {
         starSelected = false;
         selectedPotionsForAmulet.clear();
         selectedPotionsForStar.clear();
+      }
     }
-  }
 }
 
 void GameController::handleShopClick(float mouseX, float mouseY) {
@@ -309,8 +299,8 @@ void GameController::handleShopClick(float mouseX, float mouseY) {
       showShop = true;
       showOrders = false;
       showTrash = false;
-      if (amuletBaseSelected) {
-        model.setAmuletBases(model.getAmuletBases() + 1);
+    if (amuletBaseSelected) {
+      model.setAmuletBases(model.getAmuletBases() + 1);
         amuletBaseSelected = false;
       }
       selectedPotionsForAmulet.clear();

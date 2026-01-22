@@ -41,7 +41,5 @@ const std::vector<std::string>& Ingredient::getProperties() const {
 
 namespace {
   std::shared_ptr<Item> CreateIngredient() { return std::make_shared<Ingredient>(); }
-  std::shared_ptr<Item> CloneIngredient(const Item* model) { return std::make_shared<Ingredient>(*static_cast<const Ingredient*>(model)); }
   const bool registeredIngredient = ItemFactory::Instance().Register(std::string("Ingredient"), CreateIngredient);
-  const bool registeredIngredientClone = ItemCloneFactory::Instance().Register(std::type_index(typeid(Ingredient)), CloneIngredient);
 }

@@ -14,8 +14,10 @@ private:
   std::vector<std::string> properties;
   int buyPrice;
 
-public:  Star();  Star(const std::string& name, std::vector<std::string> props,
-       double sellMultiplier = 1.0, const std::string& imageFile = "star.png", int buyPrice = 10);
+public:  
+  Star();  
+  Star(const std::string& name, std::vector<std::string> props, 
+    double sellMultiplier = 1.0, const std::string& imageFile = "star.png", int buyPrice = 10);
   
   void load(std::istream& is) override;
 
@@ -24,7 +26,6 @@ public:  Star();  Star(const std::string& name, std::vector<std::string> props,
   int getPropertyCount() const override;
   int getSellPrice() const override;
   const std::vector<std::string>& getProperties() const override;
-  bool matchesRecipe(const std::vector<std::string>& input) const;
 };
 
 #endif
