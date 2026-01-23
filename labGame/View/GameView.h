@@ -15,6 +15,11 @@
 #include "../model/include/Potion.h"
 #include "../model/include/Sellable.h"
 
+enum class CraftingMode {
+  Star,
+  Amulet,
+  Ingredients
+};
 
 class GameView {
 public:
@@ -59,6 +64,13 @@ private:
   void drawTopBar(sf::RenderWindow& window, const GameModel& model);
   void drawSecretModal(sf::RenderWindow& window);
   void drawBlackScreenOverlay(sf::RenderWindow& window, bool showBlackScreen);
+  
+  void drawPotionsInCircle(sf::RenderWindow& window, const std::vector<int>& selectedPotions, const std::vector<std::shared_ptr<Item>>& itemCells);
+  void drawMixButtonIfNeeded(sf::RenderWindow& window, bool shouldShow);
+  void drawCraftingStar(sf::RenderWindow& window, const std::vector<int>& selectedPotions, const std::vector<std::shared_ptr<Item>>& itemCells);
+  void drawCraftingAmulet(sf::RenderWindow& window, const std::vector<int>& selectedPotions, const std::vector<std::shared_ptr<Item>>& itemCells);
+  void drawCraftingIngredients(sf::RenderWindow& window, const std::vector<int>& selectedIngredients);
+  
   bool loadTextureFromFile(sf::Texture& tex, const std::string& path);
   void loadTextureOrThrow(sf::Texture& tex, const std::string& path);
   void loadFontOrThrow(sf::Font& fnt, const std::string& path);

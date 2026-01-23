@@ -256,79 +256,82 @@ void GameView::drawShopSecretCell(sf::RenderWindow& window, const GameModel& mod
   }
 }
 
+void GameView::drawPotionsInCircle(sf::RenderWindow& window, const std::vector<int>& selectedPotions, const std::vector<std::shared_ptr<Item>>& itemCells) {
+  for (size_t i = 0; i < selectedPotions.size(); ++i) {
+    int slotIdx = selectedPotions[i];
+    if (itemCells[slotIdx] != nullptr) {
+      sf::Texture potionTex;
+      if (potionTex.loadFromFile(itemCells[slotIdx]->getImageFile())) {
+        float angle = (2.0f * 3.14159f * i) / selectedPotions.size();
+        float potionX = WINDOW_WIDTH / 2.0f - SCALE_SIZE / 2.0f + RADIUS * std::cos(angle);
+        float potionY = WINDOW_HEIGHT / 2.0f - SCALE_SIZE / 2.0f + RADIUS * std::sin(angle);
+        window.draw(makeSprite(potionTex, potionX, potionY, SCALE_SIZE, SCALE_SIZE));
+      }
+    }
+  }
+}
+
+void GameView::drawMixButtonIfNeeded(sf::RenderWindow& window, bool shouldShow) {
+  if (shouldShow) {
+    float buttonX = (WINDOW_WIDTH + POTION_SIZE) / 2.0f - MIX_BUTTON_SIZE - 10;
+    float buttonY = (WINDOW_HEIGHT + POTION_SIZE) / 2.0f - MIX_BUTTON_SIZE - 10;
+    window.draw(makeSprite(mixButtonTexture, buttonX, buttonY, MIX_BUTTON_SIZE, MIX_BUTTON_SIZE));
+  }
+}
+
+void GameView::drawCraftingStar(sf::RenderWindow& window, const std::vector<int>& selectedPotions, const std::vector<std::shared_ptr<Item>>& itemCells) {
+  if (starTexture.getSize().x > 0 && starTexture.getSize().y > 0) {
+    float targetSize = INGREDIENT_SIZE;
+    float starX = WINDOW_WIDTH / 2.0f - targetSize / 2.0f;
+    float starY = WINDOW_HEIGHT / 2.0f - targetSize / 2.0f;
+    window.draw(makeSprite(starTexture, starX, starY, targetSize, targetSize));
+  }
+  drawPotionsInCircle(window, selectedPotions, itemCells);
+  drawMixButtonIfNeeded(window, !selectedPotions.empty());
+}
+
+void GameView::drawCraftingAmulet(sf::RenderWindow& window, const std::vector<int>& selectedPotions, const std::vector<std::shared_ptr<Item>>& itemCells) {
+  sf::Texture amuletBaseTexture;
+  if (amuletBaseTexture.loadFromFile("amulet.png")) {
+    float amuletScale = (INGREDIENT_SIZE / 50.0f) * 1.5f;
+    float amuletX = WINDOW_WIDTH / 2.0f - (20.0f * amuletScale) / 2.0f;
+    float amuletY = WINDOW_HEIGHT / 2.0f - (50.0f * amuletScale) / 2.0f;
+    window.draw(makeSprite(amuletBaseTexture, amuletX, amuletY, 20.0f * amuletScale, 50.0f * amuletScale));
+  }
+  drawPotionsInCircle(window, selectedPotions, itemCells);
+  drawMixButtonIfNeeded(window, !selectedPotions.empty());
+}
+
+void GameView::drawCraftingIngredients(sf::RenderWindow& window, const std::vector<int>& selectedIngredients) {
+  for (size_t i = 0; i < selectedIngredients.size(); ++i) {
+    int ingIdx = selectedIngredients[i];
+    int row = i / INGREDIENT_PER_POW;
+    int col = i % INGREDIENT_PER_POW;
+    float startX = WINDOW_WIDTH / 2.0f - SCALE_SIZE;
+    float startY = (WINDOW_HEIGHT + POTION_SIZE) / 2.0f - SCALE_SIZE - 20.0f;
+    float ingX = startX + col * SCALE_SIZE;
+    float ingY = startY - row * SCALE_SIZE;
+    window.draw(makeSprite(ingredientTextures[ingIdx], ingX, ingY, SCALE_SIZE, SCALE_SIZE));
+  }
+  drawMixButtonIfNeeded(window, selectedIngredients.size() >= 2);
+}
+
 void GameView::drawPotionWindow(sf::RenderWindow& window, const std::vector<int>& selectedIngredients, const std::vector<std::shared_ptr<Item>>& itemCells, const std::vector<int>& selectedPotionsForAmulet, const std::vector<int>& selectedPotionsForStar, bool amuletBaseSelected, bool starSelected) {
   window.draw(makeSprite(potionTexture, (WINDOW_WIDTH - POTION_SIZE) / 2.0f, (WINDOW_HEIGHT - POTION_SIZE) / 2.0f, POTION_SIZE, POTION_SIZE));
 
-  if (starSelected) {
-      if (starTexture.getSize().x > 0 && starTexture.getSize().y > 0) {
-        float targetSize = INGREDIENT_SIZE;
-        float starX = WINDOW_WIDTH / 2.0f - targetSize / 2.0f;
-        float starY = WINDOW_HEIGHT / 2.0f - targetSize / 2.0f;
-        window.draw(makeSprite(starTexture, starX, starY, targetSize, targetSize));
-      }
+  CraftingMode mode = starSelected ? CraftingMode::Star : 
+                      amuletBaseSelected ? CraftingMode::Amulet : 
+                      CraftingMode::Ingredients;
 
-    for (size_t i = 0; i < selectedPotionsForStar.size(); ++i) {
-      int slotIdx = selectedPotionsForStar[i];
-      if (itemCells[slotIdx] != nullptr) {
-        sf::Texture potionTexture;
-        if (potionTexture.loadFromFile(itemCells[slotIdx]->getImageFile())) {
-          float angle = (2.0f * 3.14159f * i) / selectedPotionsForStar.size();
-          float potionX = WINDOW_WIDTH / 2.0f - SCALE_SIZE / 2.0f + RADIUS * std::cos(angle);
-          float potionY = WINDOW_HEIGHT / 2.0f - SCALE_SIZE / 2.0f + RADIUS * std::sin(angle);
-          window.draw(makeSprite(potionTexture, potionX, potionY, SCALE_SIZE, SCALE_SIZE));
-        }
-      }
-    }
+  static const std::map<CraftingMode, std::function<void()>> craftingHandlers = {
+    {CraftingMode::Star, [&]() { drawCraftingStar(window, selectedPotionsForStar, itemCells); }},
+    {CraftingMode::Amulet, [&]() { drawCraftingAmulet(window, selectedPotionsForAmulet, itemCells); }},
+    {CraftingMode::Ingredients, [&]() { drawCraftingIngredients(window, selectedIngredients); }}
+  };
 
-    if (!selectedPotionsForStar.empty()) {
-      float buttonX = (WINDOW_WIDTH + POTION_SIZE) / 2.0f - MIX_BUTTON_SIZE - 10;
-      float buttonY = (WINDOW_HEIGHT + POTION_SIZE) / 2.0f - MIX_BUTTON_SIZE - 10;
-      window.draw(makeSprite(mixButtonTexture, buttonX, buttonY, MIX_BUTTON_SIZE, MIX_BUTTON_SIZE));
-    }
-  } else if (amuletBaseSelected) {
-    sf::Texture amuletBaseTexture;
-    if (amuletBaseTexture.loadFromFile("amulet.png")) {
-      float amuletScale = (INGREDIENT_SIZE / 50.0f) * 1.5f;
-      float amuletX = WINDOW_WIDTH / 2.0f - (20.0f * amuletScale) / 2.0f;
-      float amuletY = WINDOW_HEIGHT / 2.0f - (50.0f * amuletScale) / 2.0f;
-      window.draw(makeSprite(amuletBaseTexture, amuletX, amuletY, 20.0f * amuletScale, 50.0f * amuletScale));
-    }
-
-    for (size_t i = 0; i < selectedPotionsForAmulet.size(); ++i) {
-      int slotIdx = selectedPotionsForAmulet[i];
-      if (itemCells[slotIdx] != nullptr) {
-        sf::Texture potionTexture;
-        if (potionTexture.loadFromFile(itemCells[slotIdx]->getImageFile())) {
-          float angle = (2.0f * 3.14159f * i) / selectedPotionsForAmulet.size();
-          float potionX = WINDOW_WIDTH / 2.0f - SCALE_SIZE / 2.0f + RADIUS * std::cos(angle);
-          float potionY = WINDOW_HEIGHT / 2.0f - SCALE_SIZE / 2.0f + RADIUS * std::sin(angle);
-          window.draw(makeSprite(potionTexture, potionX, potionY, SCALE_SIZE, SCALE_SIZE));
-        }
-      }
-    }
-
-    if (!selectedPotionsForAmulet.empty()) {
-      float buttonX = (WINDOW_WIDTH + POTION_SIZE) / 2.0f - MIX_BUTTON_SIZE - 10;
-      float buttonY = (WINDOW_HEIGHT + POTION_SIZE) / 2.0f - MIX_BUTTON_SIZE - 10;
-      window.draw(makeSprite(mixButtonTexture, buttonX, buttonY, MIX_BUTTON_SIZE, MIX_BUTTON_SIZE));
-    }
-  } else {
-    for (size_t i = 0; i < selectedIngredients.size(); ++i) {
-      int ingIdx = selectedIngredients[i];
-      int row = i / INGREDIENT_PER_POW;
-      int col = i % INGREDIENT_PER_POW;
-      float startX = WINDOW_WIDTH / 2.0f - SCALE_SIZE;
-      float startY = (WINDOW_HEIGHT + POTION_SIZE) / 2.0f - SCALE_SIZE - 20.0f;
-      float ingX = startX + col * SCALE_SIZE;
-      float ingY = startY - row * SCALE_SIZE;
-      window.draw(makeSprite(ingredientTextures[ingIdx], ingX, ingY, SCALE_SIZE, SCALE_SIZE));
-    }
-
-    if (selectedIngredients.size() >= 2) {
-      float buttonX = (WINDOW_WIDTH + POTION_SIZE) / 2.0f - MIX_BUTTON_SIZE - 10;
-      float buttonY = (WINDOW_HEIGHT + POTION_SIZE) / 2.0f - MIX_BUTTON_SIZE - 10;
-      window.draw(makeSprite(mixButtonTexture, buttonX, buttonY, MIX_BUTTON_SIZE, MIX_BUTTON_SIZE));
-    }
+  auto it = craftingHandlers.find(mode);
+  if (it != craftingHandlers.end()) {
+    it->second();
   }
 }
 
